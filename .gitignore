@@ -12,4 +12,5 @@ missing
 src/.deps/
 src/Makefile
 src/Makefile.in
+src/test_cuckoo
 stamp-h1

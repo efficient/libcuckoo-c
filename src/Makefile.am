@@ -1,7 +1,5 @@
-noinst_PROGRAMS = bench_cuckoo 
+noinst_PROGRAMS = test_cuckoo 
 
-bench_cuckoo_SOURCES = bench_cuckoo.cc
-bench_cuckoo_CPPFLAGS = 
-bench_cuckoo_LADFLAGS = 
-	
-
+test_cuckoo_SOURCES = test_cuckoo.c cuckoohash.c hash.c
+test_cuckoo_CPPFLAGS =
+test_cuckoo_LADFLAGS = 
