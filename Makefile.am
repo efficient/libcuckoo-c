@@ -1,5 +1,3 @@
-ACLOCAL_AMFLAGS=-I m4
-
 SUBDIRS = src
 CLEANFILES = core *.core *~
 DISTCLEANFILES = autom4te*.cache config.status config.log
