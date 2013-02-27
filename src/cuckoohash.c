@@ -112,7 +112,6 @@ typedef struct  {
 CuckooRecord;
 
 
-int       kick_count = 0;
 
 /** 
  * @brief Make bucket from[idx] slot[whichslot] available to insert a new item
@@ -128,7 +127,7 @@ static int _cuckoopath_search(cuckoo_hashtable_t* h,
                               size_t *cp_index) {
 
     int depth = depth_start;
-    while ((kick_count < MAX_CUCKOO_COUNT) && 
+    while ((h->kick_count < MAX_CUCKOO_COUNT) && 
            (depth >= 0) && 
            (depth < MAX_CUCKOO_COUNT - 1)) {
 
@@ -159,11 +158,11 @@ static int _cuckoopath_search(cuckoo_hashtable_t* h,
             next->buckets[idx] = _alt_index(h, hv, i);
         }
 
-        kick_count += NUM_CUCKOO_PATH;
+        h->kick_count += NUM_CUCKOO_PATH;
         depth ++;
     }
 
-    printf("%u max cuckoo achieved, abort\n", kick_count);
+    printf("%zu max cuckoo achieved, abort\n", h->kick_count);
     return -1;
 }
 
@@ -196,7 +195,7 @@ static int _cuckoopath_move(cuckoo_hashtable_t* h,
             return depth;
         }
 
-        assert(IS_SLOT_EMPTY(h, i2,j2));
+        assert(IS_SLOT_EMPTY(h, i2, j2));
 
         uint32_t hv = hash((char*) &TABLE_KEY(h, i1, j1), sizeof(KeyType), 0);
         size_t keylock   = _lock_index(hv);
@@ -231,7 +230,7 @@ static int _run_cuckoo(cuckoo_hashtable_t* h,
             ((CuckooRecord*) h->cuckoo_path)[depth].buckets[idx] = i2;
     }
 
-    kick_count = 0;    
+    h->kick_count = 0;    
     while (1) {
 
         cur = _cuckoopath_search(h, depth, &idx);
@@ -450,10 +449,11 @@ cuckoo_hashtable_t* cuckoo_init(const int hashtable_init) {
         goto Cleanup;
     memset(h, 0, sizeof(*h));
 
-    h->hashpower = (hashtable_init > 0) ? hashtable_init : HASHPOWER_DEFAULT;
-    h->hashsize  = (uint32_t) 1 << (h->hashpower);
-    h->hashmask  = h->hashsize - 1;
-    h->hashitems = 0;
+    h->hashpower  = (hashtable_init > 0) ? hashtable_init : HASHPOWER_DEFAULT;
+    h->hashsize   = (uint32_t) 1 << (h->hashpower);
+    h->hashmask   = h->hashsize - 1;
+    h->hashitems  = 0;
+    h->kick_count = 0;
 
     h->buckets = malloc(h->hashsize * sizeof(Bucket));
     if (! h->buckets) {
