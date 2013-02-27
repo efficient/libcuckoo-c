@@ -16,9 +16,11 @@ int main(int argc, char** argv)
     int i;    
     size_t power = 20;
     size_t numkeys = (1 << power) * 4;
+    cuckoo_hashtable_t* h;
+
 
     printf("initializing a hash table\n");
-    cuckoo_init(power);
+    h = cuckoo_init(power);
 
     printf("inserting keys to the hash table\n");
     for (i = 1; i < numkeys; i ++) {
@@ -26,7 +28,7 @@ int main(int argc, char** argv)
         ValType val;
         key = (KeyType) i;
         val = (ValType) i * 2 - 1;
-        cuckoo_status st = cuckoo_insert((const char*) &key, (const char*) &val);
+        cuckoo_status st = cuckoo_insert(h, (const char*) &key, (const char*) &val);
 
         if (st != ok) {
              printf("insert failure at key %d\n", i);
@@ -41,7 +43,7 @@ int main(int argc, char** argv)
         KeyType key;
         ValType val;
         key = (KeyType) i;
-        cuckoo_status st = cuckoo_find((const char*) &key, (char*) &val);
+        cuckoo_status st = cuckoo_find(h, (const char*) &key, (char*) &val);
         if (i < failure) {
             if (st != ok) {
                 printf("failure to read key %d\n", i);
@@ -61,8 +63,8 @@ int main(int argc, char** argv)
 
     }
 
-    cuckoo_report();
+    cuckoo_report(h);
 
-    cuckoo_exit();
+    cuckoo_exit(h);
 
 }

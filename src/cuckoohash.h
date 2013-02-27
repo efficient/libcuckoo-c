@@ -27,22 +27,59 @@ typedef enum {
     not_found = 1,
     not_enough_space = 2,
     duplicated_key_found = 3,
-    not_supported = 4
+    not_supported = 4,
+    null_hashtable = 5,
 } cuckoo_status;
+
+
+
+
+
+/*
+ * the structure of a buckoo hash table
+ */
+typedef struct {
+
+    size_t hashsize;
+    size_t hashitems;
+    size_t hashpower;
+    size_t hashmask;
+    size_t hashitmes;
+    void*  buckets;
+
+    /*
+     *  keyver_array is an array of version counters
+     *  we keep keyver_count = 8192
+     *
+     */
+    void* keyver_array;
+
+    /* the mutex to serialize insert and delete */
+    pthread_mutex_t lock;
+
+    /* record the path */
+    void* cuckoo_path;
+
+    size_t kick_count;
+
+} cuckoo_hashtable_t;
+
 
 
 /** 
  * @brief Initialize the hash table
  * 
  * @param hashtable_init The logarithm of the initial table size
+ *
+ * @return the hashtable structure on success, NULL on failure
  */
-cuckoo_status cuckoo_init(const int hashpower_init);
+cuckoo_hashtable_t* cuckoo_init(const int hashpower_init);
 
 /** 
  * @brief Cleanup routine
  * 
  */
-cuckoo_status cuckoo_exit(void);
+cuckoo_status cuckoo_exit(cuckoo_hashtable_t* h);
 
 
 /** 
@@ -53,7 +90,7 @@ cuckoo_status cuckoo_exit(void);
  * 
  * @return ok if key is found, not_found otherwise
  */
-cuckoo_status cuckoo_find(const char *key, char *val);
+cuckoo_status cuckoo_find(cuckoo_hashtable_t* h, const char *key, char *val);
 
 
 
@@ -69,7 +106,7 @@ cuckoo_status cuckoo_find(const char *key, char *val);
  * 
  * @return ok if key/value are succesfully inserted
  */
-cuckoo_status cuckoo_insert(const char *key, const char* val);
+cuckoo_status cuckoo_insert(cuckoo_hashtable_t* h, const char *key, const char* val);
 
 
 /** 
@@ -77,7 +114,7 @@ cuckoo_status cuckoo_insert(const char *key, const char* val);
  * 
  * @param key The key to be deleted
  */
-cuckoo_status cuckoo_delete(const char *key);
+cuckoo_status cuckoo_delete(cuckoo_hashtable_t* h, const char *key);
 
 
 /** 
@@ -86,6 +123,6 @@ cuckoo_status cuckoo_delete(const char *key);
  * 
  * @return Void
  */
-cuckoo_status cuckoo_report(void);
+cuckoo_status cuckoo_report(cuckoo_hashtable_t* h);
 
 #endif
