@@ -120,7 +120,7 @@ CuckooRecord;
  * @param whichslot: the slot available
  * @param  depth: the current cuckoo depth
  * 
- * @return idx on success, -1 otherwise
+ * @return depth on success, -1 otherwise
  */
 static int _cuckoopath_search(cuckoo_hashtable_t* h,
                               size_t depth_start, 
