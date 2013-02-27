@@ -7,11 +7,14 @@ AM_INIT_AUTOMAKE([foreign])
 #AC_CONFIG_SRCDIR([src/])
 AC_CONFIG_HEADERS([config.h])
 
+AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs. 
 AC_PROG_CXX
 AC_PROG_CC
 
+AC_DISABLE_SHARED
+AC_PROG_LIBTOOL
 
 # Checks for libraries.
 AC_CHECK_LIB([pthread], [pthread_mutex_init], [], [echo "pthreads not found.  Please install pthread library before proceeding"; exit -1])
@@ -79,7 +82,8 @@ AH_BOTTOM([#if HAVE_STDBOOL_H
 
 
 AC_CONFIG_FILES([ Makefile
-				src/Makefile
-				])  
+                  src/Makefile
+                  lib/Makefile
+		])  
 
 AC_OUTPUT
