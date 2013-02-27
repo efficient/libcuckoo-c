@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libcuckoo.la
+lib_LTLIBRARIES = libcuckoo.la
 libcuckoo_la_SOURCES = cuckoohash.c cuckoohash_config.h cuckoohash.h hash.c hash.h util.h
 libcuckoo_la_LIBADD = 
 
