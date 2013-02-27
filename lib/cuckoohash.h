@@ -123,6 +123,6 @@ cuckoo_status cuckoo_delete(cuckoo_hashtable_t* h, const char *key);
  * 
  * @return Void
  */
-cuckoo_status cuckoo_report(cuckoo_hashtable_t* h);
+void cuckoo_report(cuckoo_hashtable_t* h);
 
 #endif

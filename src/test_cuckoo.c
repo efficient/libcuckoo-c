@@ -61,6 +61,10 @@ int main(int argc, char** argv)
                 printf("failure to read key %d from smalltable\n", i);
                 break;
             }
+            if (st2 != ok) {
+                printf("failure to read key %d from bigtable\n", i);
+                break;
+            }
             if (val1 != val2) {
                 printf("smalltable and bigtable disagree on key %d\n", i);
                 break;
@@ -81,4 +85,5 @@ int main(int argc, char** argv)
     cuckoo_report(bigtable);
     cuckoo_exit(bigtable);
 
+    return 0;
 }

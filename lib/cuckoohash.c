@@ -405,7 +405,7 @@ static cuckoo_status _cuckoo_insert(cuckoo_hashtable_t* h,
      */
     int idx = _run_cuckoo(h, i1, i2);
     if (idx >= 0) {
-        size_t i, j;
+        size_t i;
         i = ((CuckooRecord*) h->cuckoo_path)[0].buckets[idx];
         //j = cuckoo_path[0].slots[idx];
         if (_try_add_to_bucket(h, key, val, i, keylock)) {
@@ -557,7 +557,7 @@ cuckoo_status cuckoo_delete(cuckoo_hashtable_t* h,
     return st;
 }
 
-cuckoo_status cuckoo_report(cuckoo_hashtable_t* h) {
+void cuckoo_report(cuckoo_hashtable_t* h) {
 
     size_t sz;
     sz = sizeof(Bucket) * h->hashsize;
