@@ -9,7 +9,7 @@ to make inserts or updates.  It is particularly useful for
 applications with high read-to-write ratios that store small key/value
 pairs in the hash table.
 
-Authors: Bin Fan (binfan@cs.cmu.edu) David G. Andersen (dga@cs.cmu.edu) and Michael Kaminsky (michael.e.kaminsky@intel.com)
+Authors: Bin Fan, David G. Andersen and Michael Kaminsky 
 
 For details about this algorithm and citations, please refer to [our paper in NSDI 2013][1].
 
@@ -21,3 +21,8 @@ Building
     $ autoreconf -fis
     $ ./configure
     $ make
+
+
+Issue Report
+------------
+To let us know your questions or issues, we recommend you to use [issue report](https://github.com/efficient/libcuckoo/issues) on github.
