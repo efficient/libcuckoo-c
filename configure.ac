@@ -26,7 +26,7 @@ AC_CHECK_LIB([pthread], [pthread_mutex_init], [], [echo "pthreads not found.  Pl
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 AC_C_INLINE
-C_TYPE_UINT16_T
+AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
