@@ -1,3 +1,5 @@
+/* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -52,24 +54,24 @@ int main(int argc, char** argv)
         if (i < failure) {
             if (st1 != ok) {
                 printf("failure to read key %d from smalltable\n", i);
-		passed = false;
+                passed = false;
                 break;
             }
             if (st2 != ok) {
                 printf("failure to read key %d from bigtable\n", i);
-		passed = false;
+                passed = false;
                 break;
             }
             if (val1 != val2) {
                 printf("smalltable and bigtable disagree on key %d\n", i);
-		passed = false;
+                passed = false;
                 break;
             }
         }
         else {
             if (st1 != not_found) {
                 printf(" key %d should not be in smalltable\n", i);
-		passed = false;
+                passed = false;
                 break;
             }
         }
