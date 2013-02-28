@@ -55,6 +55,10 @@ Bucket;
 #define incr_keyver(h, idx)                                      \
     __sync_fetch_and_add(&((uint32_t*) h->keyver_array)[idx & keyver_mask], 1)
 
+//#include "city.h"
+static inline  uint32_t hash(const char* buf, size_t len, const uint32_t initval) {
+    return CityHash32(buf, len);
+}
 
 
 /** 

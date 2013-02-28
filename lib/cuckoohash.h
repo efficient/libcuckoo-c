@@ -18,7 +18,8 @@
 
 #include "config.h"
 #include "cuckoohash_config.h"
-#include "hash.h"
+//#include "hash.h"
+#include "city.h"
 #include "util.h"
 
 
