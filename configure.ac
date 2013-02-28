@@ -9,6 +9,10 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_CONFIG_MACRO_DIR([m4])
 
+CFLAGS="-std=c99"
+CPPFLAGS="-std=c99"
+CFLAGS=""
+
 # Checks for programs. 
 AC_PROG_CXX
 AC_PROG_CC
@@ -22,11 +26,7 @@ AC_CHECK_LIB([pthread], [pthread_mutex_init], [], [echo "pthreads not found.  Pl
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 AC_C_INLINE
-#AC_TYPE_SIZE_T
-#AC_TYPE_SSIZE_T
-#AC_CHECK_MEMBERS([struct stat.st_blksize])
-#AC_STRUCT_ST_BLOCKS
-AC_TYPE_UINT16_T
+C_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
@@ -35,11 +35,7 @@ AC_TYPE_UINT8_T
 AC_PROG_GCC_TRADITIONAL
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
-#AC_FUNC_MMAP
 AC_FUNC_REALLOC
-#AC_FUNC_SELECT_ARGTYPES
-#AC_TYPE_SIGNAL
-#AC_CHECK_FUNCS([bzero ftruncate gethostbyname getpagesize gettimeofday inet_ntoa memchr memmove memset munmap select socket strdup strerror strtol strtoul strtoull])
 
 dnl Check if we're a little-endian or a big-endian system, needed by hash code
 
