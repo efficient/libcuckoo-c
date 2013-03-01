@@ -1,4 +1,13 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/**
+ * @file   test_cuckoo.c
+ * @author Bin Fan <binfan@cs.cmu.edu>
+ * @date   Thu Feb 28 15:54:47 2013
+ * 
+ * @brief  a simple example of using cuckoo hash table
+ * 
+ * 
+ */
 
 #include <assert.h>
 #include <stdio.h>
@@ -57,24 +66,32 @@ int main(int argc, char** argv)
                 passed = false;
                 break;
             }
-            if (st2 != ok) {
-                printf("failure to read key %d from bigtable\n", i);
-                passed = false;
-                break;
-            }
-            if (val1 != val2) {
-                printf("smalltable and bigtable disagree on key %d\n", i);
+            if (val1 != i * 2 -1 ) {
+                printf("smalltable reads wrong value for key %d\n", i);
                 passed = false;
                 break;
             }
         }
         else {
-            if (st1 != not_found) {
+            if (st1 != failure_key_not_found) {
                 printf(" key %d should not be in smalltable\n", i);
                 passed = false;
                 break;
             }
         }
+
+
+        if (st2 != ok) {
+            printf("failure to read key %d from bigtable\n", i);
+            passed = false;
+            break;
+        }
+        if (val2 != i * 2 -1 ) {
+            printf("bigtable reads wrong value for key %d\n", i);
+            passed = false;
+            break;
+        }
+
 
     }
 
