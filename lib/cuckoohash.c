@@ -62,6 +62,12 @@ static inline  uint32_t _hashed_key(const char* key) {
 #define hashsize(n) ((uint32_t) 1 << n)
 #define hashmask(n) (hashsize(n) - 1)
 
+#define DEBUG 1
+#if DEBUG
+#  define DBG(fmt, args...)  fprintf(stderr, ANSI_COLOR_RED"[libcuckoo:%s:%d] "fmt""ANSI_COLOR_RESET,__FILE__,__LINE__,args)
+#else
+#  define DBG(fmt, args...)  do {} while (0)
+#endif
 
 
 /**
@@ -192,7 +198,7 @@ static int _cuckoopath_search(cuckoo_hashtable_t* h,
         depth ++;
     }
 
-    printf("[cuckoo] %zu max cuckoo achieved, abort\n", h->kick_count);
+    DBG("%zu max cuckoo achieved, abort\n", h->kick_count);
     return -1;
 }
 
@@ -443,8 +449,8 @@ static cuckoo_status _cuckoo_insert(cuckoo_hashtable_t* h,
         }
     }
 
-    printf("[cuckoo] hash table is full (hashpower = %zu, hash_items = %zu, load factor = %.2f), need to increase hashpower\n",
-           h->hashpower, h->hashitems, 1.0 * h->hashitems / bucketsize / hashsize(h->hashpower));
+    DBG("hash table is full (hashpower = %zu, hash_items = %zu, load factor = %.2f), need to increase hashpower\n",
+        h->hashpower, h->hashitems, 1.0 * h->hashitems / bucketsize / hashsize(h->hashpower));
 
     /*
      * todo , resize..
@@ -487,7 +493,7 @@ static void *cuckoo_maintenance_thread(void *arg) {
                 break;
             }
         }
-        //printf("[cuckoo] starting table expansion, hashpower = %zu\n", h->hashpower);
+        //DBG("starting table expansion, hashpower = %zu\n", h->hashpower);
         size_t num  = 0;
         size_t ii;
         for (ii = 0; ii < hash_bulk_move && h->expanding; ++ii) {
@@ -502,7 +508,7 @@ static void *cuckoo_maintenance_thread(void *arg) {
                 size_t i1 = _index_hash(h, hv);
                 size_t i2 = _alt_index(h, hv, i1);
                 if ((i != i1) && (i != i2)) {
-                    //printf("[cuckoo] delete key %u , i=%zu i1=%zu i2=%zu\n", TABLE_KEY(h, i, j), i, i1, i2);
+                    //DBG("delete key %u , i=%zu i1=%zu i2=%zu\n", TABLE_KEY(h, i, j), i, i1, i2);
                     TABLE_KEY(h, i, j) = 0;
                     TABLE_VAL(h, i, j) = 0;
                     num ++;
@@ -511,11 +517,11 @@ static void *cuckoo_maintenance_thread(void *arg) {
             h->cleaned_buckets ++;
             if (h->cleaned_buckets == hashsize((h->hashpower - 1))) {
                 h->expanding = false;
-                printf("[cuckoo] table expansion done, %zu deleted\n", num);
+                DBG("table expansion done, %zu deleted\n", num);
                 break;
             }
         }
-        //printf("[cuckoo] %zu buckets cleaned\n", h->cleaned_buckets);
+        //DBG("%zu buckets cleaned\n", h->cleaned_buckets);
         mutex_unlock(&h->lock);
     }
 
@@ -613,7 +619,7 @@ cuckoo_status cuckoo_find(cuckoo_hashtable_t* h,
     cuckoo_status st = _cuckoo_find(h, key, val, i1, i2, keylock);
 
     if (st == failure_key_not_found) {
-        //printf("miss for key %u i1=%zu i2=%zu\n", *((KeyType*) key), i1, i2);
+        //DBG("miss for key %u i1=%zu i2=%zu\n", *((KeyType*) key), i1, i2);
     }
 
     return st;
@@ -669,7 +675,7 @@ cuckoo_status cuckoo_expand(cuckoo_hashtable_t* h) {
     mutex_lock(&h->lock);
     if (h->expanding) {
         mutex_unlock(&h->lock);
-        printf("[cuckoo] expansion is on-going\n");
+        DBG("expansion is on-going\n", NULL);
         return failure_under_expansion;
     }
     else
@@ -703,7 +709,7 @@ void cuckoo_report(cuckoo_hashtable_t* h) {
 
     size_t sz;
     sz = sizeof(Bucket) * hashsize(h->hashpower);
-    printf("[cuckoo] total number of items %zu\n", h->hashitems);
-    printf("[cuckoo] total size %zu Bytes, or %.2f MB\n", sz, (float) sz / (1 <<20));
-    printf("[cuckoo] load factor %.4f\n", 1.0 * h->hashitems / bucketsize / hashsize(h->hashpower));
+    DBG("total number of items %zu\n", h->hashitems);
+    DBG("total size %zu Bytes, or %.2f MB\n", sz, (float) sz / (1 <<20));
+    DBG("load factor %.4f\n", 1.0 * h->hashitems / bucketsize / hashsize(h->hashpower));
 }
