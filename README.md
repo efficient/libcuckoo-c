@@ -26,3 +26,4 @@ Building
 Issue Report
 ------------
 To let us know your questions or issues, we recommend you to use [issue report](https://github.com/efficient/libcuckoo/issues) on github.
+You can also email us, however, at [libcuckoo-dev@googlegroups.com](mailto:libcuckoo-dev@googlegroups.com).
