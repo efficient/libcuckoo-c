@@ -16,4 +16,12 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+
+#if DEBUG
+#  define DBG(fmt, args...)  fprintf(stderr, ANSI_COLOR_GREEN"[libcuckoo:%s:%d] "fmt""ANSI_COLOR_RESET,__FILE__,__LINE__,args)
+#else
+#  define DBG(fmt, args...)  do {} while (0)
+#endif
+
+
 #endif

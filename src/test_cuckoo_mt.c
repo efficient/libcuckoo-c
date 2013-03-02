@@ -24,13 +24,15 @@
 #define million 1000000
 #define VALUE(key) (3*key-15)
 
+static size_t power = 23;
 static size_t numkeys = 0;
+static size_t total =  100 * million;
 static bool keep_reading = true;
 static bool keep_writing = true;
 static bool passed  = true;
+static cuckoo_hashtable_t* table = NULL;
 
 static void *lookup_thread(void *arg) {
-    cuckoo_hashtable_t* table = (cuckoo_hashtable_t*) arg;
     cuckoo_status st;
     char name[]="reader";
     KeyType key;
@@ -47,7 +49,7 @@ static void *lookup_thread(void *arg) {
         size_t i = (int) (((float )rand() / RAND_MAX) * numkeys);
         if (i == 0)
             i = 1;
-        assert(i < numkeys);
+        assert(i <= numkeys);
         key = (KeyType) i;
         st = cuckoo_find(table, (const char*) &key, (char*) &val);
         ops ++;
@@ -72,7 +74,6 @@ static void *lookup_thread(void *arg) {
 }
 
 static void *insert_thread(void *arg) {
-    cuckoo_hashtable_t* table = (cuckoo_hashtable_t*) arg;
     cuckoo_status st;
     char name[]="writer";
     KeyType key;
@@ -81,26 +82,24 @@ static void *insert_thread(void *arg) {
     size_t failures = 0;
     size_t expansion = 0;
 
-    size_t i = 0;
     while (keep_writing) {
-        i ++;
-        key = (KeyType) i;
-        val = (ValType) VALUE(i);
-        st = cuckoo_insert(table, (const char*) &key, (const char*) &val);
         ops ++;
+        key = (KeyType) ops;
+        val = (ValType) VALUE(ops);
+        st = cuckoo_insert(table, (const char*) &key, (const char*) &val);
 
         if (st == ok) {
 
         }
         else if (st == failure_table_full) {
 
-            printf("[%s] table is full when inserting key %zu\n", name, i);
+            printf("[%s] table is full when inserting key %zu\n", name, ops);
             printf("[%s] grow table\n", name);
             st = cuckoo_expand(table);
             if (st == ok) {
                 printf("[%s] grow table returns\n", name);
                 expansion ++;
-                i --;
+                ops --;
             }
             else if (st == failure_under_expansion) {
                 printf("[%s] grow table is already on-going\n", name);
@@ -120,12 +119,13 @@ static void *insert_thread(void *arg) {
             numkeys = ops;
         }
 
-        if (ops == 1 * million ) {
-            keep_reading = false;
-            keep_writing = false;
+        if (ops == total ) {
+            break;
         }
 
     }
+    keep_reading = false;
+    keep_writing = false;
 
     printf("[%s] %zu inserts, %zu failures\n", name, ops, failures);
     printf("[%s] %zu expansion\n", name, expansion);
@@ -138,11 +138,10 @@ static void *insert_thread(void *arg) {
 int main(int argc, char** argv) 
 {
 
-    size_t power = 17;
 
     printf("initializing hash table\n");
 
-    cuckoo_hashtable_t* table = cuckoo_init(power);
+    table = cuckoo_init(power);
     pthread_t reader, writer;
     
     

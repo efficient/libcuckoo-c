@@ -5,4 +5,8 @@
 typedef uint32_t KeyType;
 typedef uint32_t ValType;
 
+
+#define DEBUG 1
+
+
 #endif
