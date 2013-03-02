@@ -472,20 +472,10 @@ static void *cuckoo_maintenance_thread(void *arg) {
 
     size_t i, j, ii;
     size_t num_deletes;
-    size_t hash_bulk_move = 1024;
+    size_t hash_bulk_move = DEFAULT_BULK_MOVE;
     while (h->running_maintenance_thread) {
 
         mutex_lock(&h->lock);
-        // for debug
-        /* size_t num = 0; */
-        /* for (i = 0; i < hashsize(h->hashpower); i ++) { */
-        /*     for (j = 0; j < bucketsize; j ++) { */
-        /*         if (TABLE_KEY(h, i, j) != 0) { */
-        /*             num ++; */
-        /*         } */
-        /*     } */
-        /* } */
-        //DBG("Hashpower %zu , numitems =%zu\n", h->hashpower, num);
 
         if (!h->expanding) {
             /* We are done expanding.. just wait for next invocation */
@@ -494,7 +484,7 @@ static void *cuckoo_maintenance_thread(void *arg) {
                 mutex_unlock(&h->lock);
                 break;
             }
-            DBG("starting table expansion, hashpower = %zu\n", h->hashpower);
+            DBG("start to clean table (hashpower = %zu)\n", h->hashpower);
             num_deletes = 0;
         }
         for (ii = 0; ii < hash_bulk_move && h->expanding; ++ii) {
@@ -517,7 +507,7 @@ static void *cuckoo_maintenance_thread(void *arg) {
             h->cleaned_buckets ++;
             if (h->cleaned_buckets == hashsize((h->hashpower))) {
                 h->expanding = false;
-                DBG("table expansion done, %zu deleted\n", num_deletes);
+                DBG("table clean done, %zu slots erased\n", num_deletes);
                 break;
             }
         }
@@ -675,7 +665,7 @@ cuckoo_status cuckoo_expand(cuckoo_hashtable_t* h) {
     mutex_lock(&h->lock);
     if (h->expanding) {
         mutex_unlock(&h->lock);
-        DBG("expansion is on-going\n", NULL);
+        //DBG("expansion is on-going\n", NULL);
         return failure_under_expansion;
     }
     else
