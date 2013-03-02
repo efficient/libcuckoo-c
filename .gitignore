@@ -14,6 +14,7 @@ src/.libs/
 src/Makefile
 src/Makefile.in
 src/test_cuckoo
+src/test_cuckoo_mt
 stamp-h1
 config.guess
 config.h.in~
