@@ -631,6 +631,7 @@ cuckoo_status cuckoo_insert(cuckoo_hashtable_t* h,
 
     st = _cuckoo_find(h, key, (char*) &oldval, i1, i2, keylock);
     if  (st == ok) {
+        mutex_unlock(&h->lock);
         return failure_key_duplicated;
     }
 
