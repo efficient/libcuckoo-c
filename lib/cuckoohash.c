@@ -466,56 +466,33 @@ static cuckoo_status _cuckoo_delete(cuckoo_hashtable_t* h,
 
 }
 
-
-static void *cuckoo_maintenance_thread(void *arg) {
-    cuckoo_hashtable_t* h = (cuckoo_hashtable_t*) arg;
-
+static void _cuckoo_clean(cuckoo_hashtable_t* h) {
     size_t i, j, ii;
-    size_t num_deletes;
-    size_t hash_bulk_move = DEFAULT_BULK_MOVE;
-    while (h->running_maintenance_thread) {
 
-        mutex_lock(&h->lock);
-
-        if (!h->expanding) {
-            /* We are done expanding.. just wait for next invocation */
-            pthread_cond_wait(&h->maintenance_cond, &h->lock);
-            if (!h->running_maintenance_thread) {
-                mutex_unlock(&h->lock);
-                break;
+    for (ii = 0; ii < DEFAULT_BULK_CLEAN && h->expanding; ++ii) {
+        i = h->cleaned_buckets;
+        uint32_t hv;
+        for (j = 0; j < bucketsize; j ++) {
+            if (TABLE_KEY(h, i, j) == 0) {
+                continue;
             }
-            DBG("start to clean table (hashpower = %zu)\n", h->hashpower);
-            num_deletes = 0;
-        }
-        for (ii = 0; ii < hash_bulk_move && h->expanding; ++ii) {
-            i = h->cleaned_buckets;
-            uint32_t hv;
-            for (j = 0; j < bucketsize; j ++) {
-                if (TABLE_KEY(h, i, j) == 0) {
-                    continue;
-                }
-                hv = _hashed_key((char*) &TABLE_KEY(h, i, j));
-                size_t i1 = _index_hash(h, hv);
-                size_t i2 = _alt_index(h, hv, i1);
-                if ((i != i1) && (i != i2)) {
-                    //DBG("delete key %u , i=%zu i1=%zu i2=%zu\n", TABLE_KEY(h, i, j), i, i1, i2);
-                    TABLE_KEY(h, i, j) = 0;
-                    TABLE_VAL(h, i, j) = 0;
-                    num_deletes ++;
-                }
-            }
-            h->cleaned_buckets ++;
-            if (h->cleaned_buckets == hashsize((h->hashpower))) {
-                h->expanding = false;
-                DBG("table clean done, %zu slots erased\n", num_deletes);
-                break;
+            hv = _hashed_key((char*) &TABLE_KEY(h, i, j));
+            size_t i1 = _index_hash(h, hv);
+            size_t i2 = _alt_index(h, hv, i1);
+            if ((i != i1) && (i != i2)) {
+                //DBG("delete key %u , i=%zu i1=%zu i2=%zu\n", TABLE_KEY(h, i, j), i, i1, i2);
+                TABLE_KEY(h, i, j) = 0;
+                TABLE_VAL(h, i, j) = 0;
             }
         }
-        //DBG("%zu buckets cleaned\n", h->cleaned_buckets);
-        mutex_unlock(&h->lock);
+        h->cleaned_buckets ++;
+        if (h->cleaned_buckets == hashsize((h->hashpower))) {
+            h->expanding = false;
+            DBG("table clean done, cleaned_buckets = %zu\n", h->cleaned_buckets);
+            return;
+        }
     }
-
-    pthread_exit(NULL);
+    //DBG("table clean not done yet, cleaned_buckets = %zu\n", h->cleaned_buckets);
 }
 
 
@@ -524,7 +501,6 @@ static void *cuckoo_maintenance_thread(void *arg) {
  *********************************************************************/
 
 cuckoo_hashtable_t* cuckoo_init(const int hashtable_init) {
-    int ret;
     cuckoo_hashtable_t* h = (cuckoo_hashtable_t*) malloc(sizeof(cuckoo_hashtable_t));
     if (!h)
         goto Cleanup;
@@ -533,9 +509,7 @@ cuckoo_hashtable_t* cuckoo_init(const int hashtable_init) {
     h->hashitems  = 0;
     h->kick_count = 0;
     h->expanding  = false;
-    h->running_maintenance_thread = true;
     pthread_mutex_init(&h->lock, NULL);
-    pthread_cond_init (&h->maintenance_cond, NULL);
 
     h->buckets = malloc(hashsize(h->hashpower) * sizeof(Bucket));
     if (! h->buckets) {
@@ -552,15 +526,6 @@ cuckoo_hashtable_t* cuckoo_init(const int hashtable_init) {
     h->cuckoo_path = malloc(MAX_CUCKOO_COUNT * sizeof(CuckooRecord));
     if (! h->cuckoo_path) {
         fprintf(stderr, "Failed to init cuckoo path.\n");
-        goto Cleanup;
-    }
-
-    ret = pthread_create(&h->maintenance_thread,
-                         NULL,
-                         cuckoo_maintenance_thread,
-                         (void*) h);
-    if (ret != 0) {
-        fprintf(stderr, "Failed to create thread: %s\n", strerror(ret));
         goto Cleanup;
     }
 
@@ -582,15 +547,7 @@ Cleanup:
 }
 
 cuckoo_status cuckoo_exit(cuckoo_hashtable_t* h) {
-    mutex_lock(&h->lock);
-    h->running_maintenance_thread = false;
-    pthread_cond_signal(&h->maintenance_cond);
-    mutex_unlock(&h->lock);
-
-    pthread_join(h->maintenance_thread, NULL);
-
     pthread_mutex_destroy(&h->lock);
-    pthread_cond_destroy(&h->maintenance_cond);
     free(h->buckets);
     free(h->keyver_array);
     free(h);
@@ -636,6 +593,11 @@ cuckoo_status cuckoo_insert(cuckoo_hashtable_t* h,
     }
 
     st =  _cuckoo_insert(h, key, val, i1, i2, keylock);
+
+    if (h->expanding) {
+        // still some work to do
+        _cuckoo_clean(h);
+    }
 
     mutex_unlock(&h->lock);
 
@@ -689,8 +651,6 @@ cuckoo_status cuckoo_expand(cuckoo_hashtable_t* h) {
     h->cleaned_buckets = 0;
     mutex_unlock(&h->lock);
 
-    // revoke the maintenance thread
-    pthread_cond_signal(&h->maintenance_cond);
     free(old_buckets);
 
     return ok;

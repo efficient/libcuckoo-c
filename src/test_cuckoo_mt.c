@@ -25,7 +25,8 @@
 #define million 1000000
 #define VALUE(key) (3*key-15)
 
-
+static size_t power = 20;
+static size_t total =  30 * million;
 static volatile size_t num_written = 0;
 static volatile size_t num_read = 0;
 static volatile bool keep_reading = true;
@@ -118,6 +119,12 @@ static void *insert_thread(void *arg) {
             printf("[%s] unknown error\n", name);
             failures ++;
         }
+
+        if ( num_written >= total ) {
+            keep_writing = false;
+            keep_reading = false;
+            break;
+        }
         
     }
 
@@ -134,8 +141,6 @@ int main(int argc, char** argv)
     struct timeval tvs, tve; 
     double tvsd, tved, tdiff;
 
-    size_t power = 20;
-    size_t total =  50 * million;
 
     printf("initializing hash table\n");
 
@@ -157,7 +162,7 @@ int main(int argc, char** argv)
 
     size_t last_read    = 0;
     size_t last_written = 0;
-    while (num_written < total ) {
+    while (keep_reading && keep_writing) {
         sleep(1);
         gettimeofday(&tve, NULL); 
         tvsd = (double)tvs.tv_sec + (double)tvs.tv_usec/1000000;
@@ -170,8 +175,6 @@ int main(int argc, char** argv)
         last_read   = num_read;
         last_written = num_written;
     }
-    keep_reading = false;
-    keep_writing = false;
 
     pthread_join(writer, NULL);
     pthread_join(reader, NULL);

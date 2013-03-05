@@ -5,8 +5,8 @@
 typedef uint32_t KeyType;
 typedef uint32_t ValType;
 
-/* size of bulk move in background cleaning process */
-#define DEFAULT_BULK_MOVE 128
+/* size of bulk cleaning */
+#define DEFAULT_BULK_CLEAN 1024
 
 
 /* set DEBUG to 1 to enable debug output */

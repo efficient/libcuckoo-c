@@ -47,7 +47,7 @@ typedef struct {
     size_t hashitems;
 
     /* 2**hashpower is the number of buckets */
-    size_t hashpower;
+    volatile size_t hashpower;
 
     /* the mask for bucket index */
     size_t hashmask;
@@ -74,15 +74,8 @@ typedef struct {
     /* denoting if the table is doing expanding */
     bool expanding;
 
-    /* the condition variable to trigger maintenance */
-    pthread_cond_t maintenance_cond;
-
     /* number of buckets has been cleaned */
     size_t cleaned_buckets;
-
-    bool running_maintenance_thread;
-
-    pthread_t maintenance_thread;
 
 } cuckoo_hashtable_t;
 
