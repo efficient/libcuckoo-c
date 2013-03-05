@@ -43,11 +43,16 @@ typedef enum {
  */
 typedef struct {
 
-    size_t hashsize;
+    /* number of items inserted */
     size_t hashitems;
+
+    /* 2**hashpower is the number of buckets */
     size_t hashpower;
+
+    /* the mask for bucket index */
     size_t hashmask;
-    size_t hashitmes;
+
+    /* pointer to the array of buckets */
     void*  buckets;
 
     /*
