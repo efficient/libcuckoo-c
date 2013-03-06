@@ -9,6 +9,10 @@
  * 
  */
 
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -19,6 +23,9 @@
 #include <math.h>
 #include <unistd.h>           /* for sleep */
 #include <sys/time.h>        /* for gettimeofday */
+#ifdef HAVE_GETOPT_H
+#  include <getopt.h>
+#endif
 
 #include "cuckoohash.h"
 

@@ -36,6 +36,8 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_REALLOC
 
+AC_CHECK_HEADERS([getopt.h])
+
 dnl Check if we're a little-endian or a big-endian system, needed by hash code
 
 AC_DEFUN([AC_C_ENDIAN],
