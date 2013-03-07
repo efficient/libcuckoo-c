@@ -9,14 +9,14 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_CONFIG_MACRO_DIR([m4])
 
-CFLAGS="-std=c99 -g -ggdb"
+CFLAGS="-std=c99"
 CPPFLAGS="-std=c99"
 
 # Checks for programs. 
 AC_PROG_CXX
 AC_PROG_CC
 
-AC_DISABLE_SHARED
+#AC_DISABLE_SHARED
 AC_PROG_LIBTOOL
 
 # Checks for libraries.

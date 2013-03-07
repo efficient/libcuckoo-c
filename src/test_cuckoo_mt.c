@@ -134,10 +134,7 @@ static void *lookup_thread(void *arg) {
         }
         th->num_read ++;
     }
-    printf("[reader%d] %zu lookups, %zu failures\n", th->id, th->ops, th->failures);
-    if (th->failures > 0)
-        passed = false;
-
+    
     pthread_exit(NULL);
 }
 
@@ -157,7 +154,6 @@ static void *insert_thread(void *arg) {
         task = task_assign();
         if (task >= task_num)
             break;
-        //printf("[writer%d] gets task [%zu, %zu)\n", th->id, task * task_size, (task + 1) * task_size);
         for (i = task * task_size + 1; i <= (task + 1) * task_size; i ++) {
             th->ops ++;
             key = (KeyType) i;
@@ -173,14 +169,8 @@ static void *insert_thread(void *arg) {
                 th->failures ++;
             }
         }
-        //printf("[writer%d] completes task [%zu, %zu)\n", th->id, task * task_size, (task + 1) * task_size);
-        task_complete(task);
-        
+        task_complete(task);        
     }
-
-    printf("[writer%d] %zu inserts, %zu failures\n", th->id, th->ops, th->failures);
-    if (th->failures > 0)
-        passed = false;
 
     pthread_exit(NULL);
 }
@@ -272,10 +262,16 @@ int main(int argc, char** argv)
 
     for (i = 0; i < num_readers; i ++) {
         pthread_join(readers[i], NULL);
+        printf("[reader%d] %zu lookups, %zu failures\n", i, reader_args[i].ops, reader_args[i].failures);
+        if (reader_args[i].failures > 0)
+            passed = false;
     }
 
     for (i = 0; i < num_writers; i ++) {
         pthread_join(writers[i], NULL);
+        printf("[writer%d] %zu inserts, %zu failures\n", i, writer_args[i].ops, writer_args[i].failures);
+        if (writer_args[i].failures > 0)
+            passed = false;
     }
 
 
