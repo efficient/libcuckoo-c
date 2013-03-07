@@ -93,8 +93,6 @@ static inline size_t _alt_index(cuckoo_hashtable_t* h,
     //uint32_t tag = hv & 0xFF;
     uint32_t tag = hv >> 24;
     return (index ^ (tag * 0x5bd1e995)) & hashmask(h->hashpower);
-    //return (hv ^ (tag * 0x5bd1e995)) & hashmask(h->hashpower);
-    //return ((hv >> 32) & hashmask(h->hashpower));
 }
 
 /**
@@ -112,23 +110,11 @@ static inline size_t _lock_index(const uint32_t hv) {
 #define TABLE_KEY(h, i, j) ((Bucket*) h->buckets)[i].keys[j]
 #define TABLE_VAL(h, i, j) ((Bucket*) h->buckets)[i].vals[j]
 
-
-//#define IS_SLOT_EMPTY(h, i, j) (TABLE_KEY(h, i, j)==0)
 static inline bool is_slot_empty(cuckoo_hashtable_t* h,
                                  size_t i,
                                  size_t j) {
     if (TABLE_KEY(h, i, j)==0)
         return true;
-    if (h->expanding) {
-        // when we are expanding
-        // we could leave keys in their old but wrong buckets
-        uint32_t hv = _hashed_key((char*) &TABLE_KEY(h, i, j));
-        size_t i1 = _index_hash(h, hv);
-        size_t i2 = _alt_index(h, hv, i1);
-        if ((i != i1) && (i != i2)) {
-            return true;
-        }
-    }
     return false;
 }
 
@@ -466,36 +452,6 @@ static cuckoo_status _cuckoo_delete(cuckoo_hashtable_t* h,
 
 }
 
-static void _cuckoo_clean(cuckoo_hashtable_t* h) {
-    size_t i, j, ii;
-
-    for (ii = 0; ii < DEFAULT_BULK_CLEAN && h->expanding; ++ii) {
-        i = h->cleaned_buckets;
-        uint32_t hv;
-        for (j = 0; j < bucketsize; j ++) {
-            if (TABLE_KEY(h, i, j) == 0) {
-                continue;
-            }
-            hv = _hashed_key((char*) &TABLE_KEY(h, i, j));
-            size_t i1 = _index_hash(h, hv);
-            size_t i2 = _alt_index(h, hv, i1);
-            if ((i != i1) && (i != i2)) {
-                //DBG("delete key %u , i=%zu i1=%zu i2=%zu\n", TABLE_KEY(h, i, j), i, i1, i2);
-                TABLE_KEY(h, i, j) = 0;
-                TABLE_VAL(h, i, j) = 0;
-            }
-        }
-        h->cleaned_buckets ++;
-        if (h->cleaned_buckets == hashsize((h->hashpower))) {
-            h->expanding = false;
-            DBG("table clean done, cleaned_buckets = %zu\n", h->cleaned_buckets);
-            return;
-        }
-    }
-    //DBG("table clean not done yet, cleaned_buckets = %zu\n", h->cleaned_buckets);
-}
-
-
 /********************************************************************
  *               Interface of cuckoo hash table
  *********************************************************************/
@@ -508,7 +464,6 @@ cuckoo_hashtable_t* cuckoo_init(const int hashtable_init) {
     h->hashpower  = (hashtable_init > 0) ? hashtable_init : HASHPOWER_DEFAULT;
     h->hashitems  = 0;
     h->kick_count = 0;
-    h->expanding  = false;
     pthread_mutex_init(&h->lock, NULL);
 
     h->buckets = malloc(hashsize(h->hashpower) * sizeof(Bucket));
@@ -566,7 +521,7 @@ cuckoo_status cuckoo_find(cuckoo_hashtable_t* h,
     cuckoo_status st = _cuckoo_find(h, key, val, i1, i2, keylock);
 
     if (st == failure_key_not_found) {
-        //DBG("miss for key %u i1=%zu i2=%zu\n", *((KeyType*) key), i1, i2);
+        DBG("miss for key %u i1=%zu i2=%zu\n", *((KeyType*) key), i1, i2);
     }
 
     return st;
@@ -594,11 +549,6 @@ cuckoo_status cuckoo_insert(cuckoo_hashtable_t* h,
 
     st =  _cuckoo_insert(h, key, val, i1, i2, keylock);
 
-    if (h->expanding) {
-        // still some work to do
-        _cuckoo_clean(h);
-    }
-
     mutex_unlock(&h->lock);
 
     return st;
@@ -621,39 +571,6 @@ cuckoo_status cuckoo_delete(cuckoo_hashtable_t* h,
     mutex_unlock(&h->lock);
 
     return st;
-}
-
-cuckoo_status cuckoo_expand(cuckoo_hashtable_t* h) {
-
-    mutex_lock(&h->lock);
-    if (h->expanding) {
-        mutex_unlock(&h->lock);
-        //DBG("expansion is on-going\n", NULL);
-        return failure_under_expansion;
-    }
-    else
-        h->expanding = true;
-
-    Bucket* old_buckets = (Bucket*) h->buckets;
-    Bucket* new_buckets = (Bucket*) malloc(hashsize((h->hashpower + 1)) * sizeof(Bucket));
-    if (!new_buckets) {
-        h->expanding = false;
-        mutex_unlock(&h->lock);
-        return failure_space_not_enough;
-    }
-
-    memcpy(new_buckets, h->buckets, hashsize(h->hashpower) * sizeof(Bucket));
-    memcpy(new_buckets + hashsize(h->hashpower), h->buckets, hashsize(h->hashpower) * sizeof(Bucket));
-
-
-    h->buckets = new_buckets;
-    h->hashpower ++;
-    h->cleaned_buckets = 0;
-    mutex_unlock(&h->lock);
-
-    free(old_buckets);
-
-    return ok;
 }
 
 void cuckoo_report(cuckoo_hashtable_t* h) {

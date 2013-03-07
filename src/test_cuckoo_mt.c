@@ -33,7 +33,7 @@
 #define VALUE(key) (3*key-15)
 
 static cuckoo_hashtable_t* table = NULL;
-static size_t power = 20;
+static size_t power = 25;
 static size_t total =  30 * million;
 static size_t total_inserted;
 static volatile bool keep_reading = true;
@@ -155,9 +155,10 @@ static void *insert_thread(void *arg) {
     while (keep_writing) {
         size_t i, task;
         task = task_assign();
-        printf("[writer%d] gets task [%zu, %zu)\n", th->id, task * task_size, (task + 1) * task_size);
-        for (i = task * task_size; i < (task + 1) * task_size; i ++) {
-            if (i == 0) continue;
+        if (task >= task_num)
+            break;
+        //printf("[writer%d] gets task [%zu, %zu)\n", th->id, task * task_size, (task + 1) * task_size);
+        for (i = task * task_size + 1; i <= (task + 1) * task_size; i ++) {
             th->ops ++;
             key = (KeyType) i;
             val = (ValType) VALUE(i);
@@ -167,37 +168,17 @@ static void *insert_thread(void *arg) {
                 th->num_written ++;
 
             }
-            else if (st == failure_table_full) {
-
-                printf("[writer%d] table is full when inserting key %zu\n", th->id, th->ops);
-                //printf("[%s] grow table\n", name);
-                st = cuckoo_expand(table);
-                if (st == ok) {
-                    //printf("[%s] grow table returns\n", name);
-                    //expansion ++;
-                    th->ops --;
-                }
-                else if (st == failure_under_expansion) {
-                    printf("[writer%d] grow table is already on-going\n", th->id);
-                    sleep(1);
-                }
-                else {
-                    printf("[writer%d] unknown error for key %zu (%d)\n", th->id, i, st);
-                    th->failures ++;
-                }
-            }
             else {
                 printf("[writer%d] unknown error for key %zu (%d)\n", th->id, i, st);
                 th->failures ++;
             }
         }
-        printf("[writer%d] completes task [%zu, %zu)\n", th->id, task * task_size, (task + 1) * task_size);
+        //printf("[writer%d] completes task [%zu, %zu)\n", th->id, task * task_size, (task + 1) * task_size);
         task_complete(task);
         
     }
 
     printf("[writer%d] %zu inserts, %zu failures\n", th->id, th->ops, th->failures);
-    //printf("[writer%s] %zu expansion\n", th->id, expansion);
     if (th->failures > 0)
         passed = false;
 
@@ -237,6 +218,7 @@ int main(int argc, char** argv)
 
     printf("initializing hash table\n");
     table = cuckoo_init(power);
+    cuckoo_report(table);
 
     pthread_t* readers = calloc(sizeof(pthread_t), num_readers);
     pthread_t* writers = calloc(sizeof(pthread_t), num_writers);
@@ -275,7 +257,7 @@ int main(int argc, char** argv)
         tvsd = (double)tvs.tv_sec + (double)tvs.tv_usec/1000000;
         tved = (double)tve.tv_sec + (double)tve.tv_usec/1000000;
         tdiff = tved - tvsd;
-        printf("[stats (MOPS)] ");
+        printf("[tput in MOPS] ");
         for (i = 0; i < num_readers; i ++) {
             printf("reader%d %4.2f ", i, (reader_args[i].num_read - last_num_read[i])/ tdiff/ million );
             last_num_read[i] = reader_args[i].num_read;
@@ -297,7 +279,6 @@ int main(int argc, char** argv)
     }
 
 
-    cuckoo_report(table);
     cuckoo_exit(table);
 
     printf("[%s]\n", passed ? "PASSED" : "FAILED");

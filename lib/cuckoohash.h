@@ -31,11 +31,7 @@ typedef enum {
     failure_space_not_enough = 4,
     failure_function_not_supported = 5,
     failure_table_full = 6,
-    failure_under_expansion = 7,
 } cuckoo_status;
-
-
-
 
 
 /*
@@ -47,7 +43,7 @@ typedef struct {
     size_t hashitems;
 
     /* 2**hashpower is the number of buckets */
-    volatile size_t hashpower;
+    size_t hashpower;
 
     /* the mask for bucket index */
     size_t hashmask;
@@ -70,12 +66,6 @@ typedef struct {
 
     /* number of cuckoo operations*/
     size_t kick_count;
-
-    /* denoting if the table is doing expanding */
-    bool expanding;
-
-    /* number of buckets has been cleaned */
-    size_t cleaned_buckets;
 
 } cuckoo_hashtable_t;
 
@@ -137,16 +127,6 @@ cuckoo_status cuckoo_insert(cuckoo_hashtable_t* h, const char *key, const char* 
  * @return ok if key is succesfully deleted, not_found if the key is not present
  */
 cuckoo_status cuckoo_delete(cuckoo_hashtable_t* h, const char *key);
-
-
-/** 
- * @brief Grow the hash table to the next power of 2
- * 
- * @param h handler to the hash table
- *
- * @return ok if table is succesfully expanded, not_enough_space if no space to expand
- */
-cuckoo_status cuckoo_expand(cuckoo_hashtable_t* h);
 
 
 /** 
