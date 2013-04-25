@@ -45,14 +45,20 @@ Bucket;
  *  @brief Atomic read the counter
  *
  */
-#define read_keyver(h, idx)                                      \
+#define start_read_keyver(h, idx)                                      \
     __sync_fetch_and_add(&((uint32_t*) h->keyver_array)[idx & keyver_mask], 0)
+
+#define end_read_keyver(h, idx)                                      \
+    ((uint32_t*) h->keyver_array)[idx & keyver_mask]
 
 /**
  * @brief Atomic increase the counter
  *
  */
-#define incr_keyver(h, idx)                                      \
+#define start_incr_keyver(h, idx)                                      \
+    do { ((uint32_t *)h->keyver_array)[idx & keyver_mask] += 1; } while(0)
+
+#define end_incr_keyver(h, idx)                                      \
     __sync_fetch_and_add(&((uint32_t*) h->keyver_array)[idx & keyver_mask], 1)
 
 static inline  uint32_t _hashed_key(const char* key) {
@@ -216,14 +222,14 @@ static int _cuckoopath_move(cuckoo_hashtable_t* h,
         uint32_t hv = _hashed_key((char*) &TABLE_KEY(h, i1, j1));
         size_t keylock   = _lock_index(hv);
 
-        incr_keyver(h, keylock);
+        start_incr_keyver(h, keylock);
 
         TABLE_KEY(h, i2, j2) = TABLE_KEY(h, i1, j1);
         TABLE_VAL(h, i2, j2) = TABLE_VAL(h, i1, j1);
         TABLE_KEY(h, i1, j1) = 0;
         TABLE_VAL(h, i1, j1) = 0;
 
-        incr_keyver(h, keylock);
+        end_incr_keyver(h, keylock);
 
         depth --;
     }
@@ -308,14 +314,14 @@ static bool _try_add_to_bucket(cuckoo_hashtable_t* h,
     for (j = 0; j < bucketsize; j ++) {
         if (is_slot_empty(h, i, j)) {
 
-            incr_keyver(h, keylock);
+            start_incr_keyver(h, keylock);
 
             memcpy(&TABLE_KEY(h, i, j), key, sizeof(KeyType));
             memcpy(&TABLE_VAL(h, i, j), val, sizeof(ValType));
 
             h->hashitems ++;
 
-            incr_keyver(h, keylock);
+            end_incr_keyver(h, keylock);
             return true;
         }
     }
@@ -343,7 +349,7 @@ static bool _try_del_from_bucket(cuckoo_hashtable_t* h,
 
         if (keycmp((char*) &TABLE_KEY(h, i, j), key)) {
 
-            incr_keyver(h, keylock);
+            start_incr_keyver(h, keylock);
 
             TABLE_KEY(h, i, j) = 0;
             TABLE_VAL(h, i, j) = 0;
@@ -352,7 +358,7 @@ static bool _try_del_from_bucket(cuckoo_hashtable_t* h,
 
             h->hashitems --;
 
-            incr_keyver(h, keylock);
+            end_incr_keyver(h, keylock);
             return true;
         }
     }
@@ -381,14 +387,14 @@ static cuckoo_status _cuckoo_find(cuckoo_hashtable_t* h,
 
     uint32_t vs, ve;
 TryRead:
-    vs = read_keyver(h, keylock);
+    vs = start_read_keyver(h, keylock);
 
     result = _try_read_from_bucket(h, key, val, i1);
     if (!result) {
         result = _try_read_from_bucket(h, key, val, i2);
     }
 
-    ve = read_keyver(h, keylock);
+    ve = end_read_keyver(h, keylock);
 
     if (vs & 1 || vs != ve)
         goto TryRead;
