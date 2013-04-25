@@ -48,8 +48,10 @@ Bucket;
 #define start_read_keyver(h, idx)                                      \
     __sync_fetch_and_add(&((uint32_t*) h->keyver_array)[idx & keyver_mask], 0)
 
-#define end_read_keyver(h, idx)                                      \
-    ((uint32_t*) h->keyver_array)[idx & keyver_mask]
+#define end_read_keyver(h, idx, result)                                \
+    do { __asm__ __volatile__("" ::: "memory");  \
+    result = ((uint32_t*) h->keyver_array)[idx & keyver_mask]; \
+    } while (0)
 
 /**
  * @brief Atomic increase the counter
@@ -59,7 +61,10 @@ Bucket;
     do { ((uint32_t *)h->keyver_array)[idx & keyver_mask] += 1; } while(0)
 
 #define end_incr_keyver(h, idx)                                      \
-    __sync_fetch_and_add(&((uint32_t*) h->keyver_array)[idx & keyver_mask], 1)
+    do { \
+    __asm__ __volatile__("" ::: "memory"); \
+    __sync_fetch_and_add(&((uint32_t*) h->keyver_array)[idx & keyver_mask], 1); \
+    } while(0)
 
 static inline  uint32_t _hashed_key(const char* key) {
     return CityHash32(key, sizeof(KeyType));
@@ -394,7 +399,7 @@ TryRead:
         result = _try_read_from_bucket(h, key, val, i2);
     }
 
-    ve = end_read_keyver(h, keylock);
+    end_read_keyver(h, keylock, ve);
 
     if (vs & 1 || vs != ve)
         goto TryRead;
