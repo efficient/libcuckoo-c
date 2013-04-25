@@ -58,11 +58,12 @@ Bucket;
  *
  */
 #define start_incr_keyver(h, idx)                                      \
-    do { ((uint32_t *)h->keyver_array)[idx & keyver_mask] += 1; } while(0)
+    do { ((uint32_t *)h->keyver_array)[idx & keyver_mask] += 1; \
+	__asm__ __volatile__("" ::: "memory"); \
+       } while(0)
 
 #define end_incr_keyver(h, idx)                                      \
     do { \
-    __asm__ __volatile__("" ::: "memory"); \
     __sync_fetch_and_add(&((uint32_t*) h->keyver_array)[idx & keyver_mask], 1); \
     } while(0)
 
