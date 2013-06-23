@@ -13,7 +13,7 @@ Authors: Bin Fan, David G. Andersen and Michael Kaminsky
 
 For details about this algorithm and citations, please refer to [our paper in NSDI 2013][1].
 
-   [1]: http://www.cs.cmu.edu/~dga/papers/memc3-nsdi20013.pdf "MemC3: Compact and Concurrent Memcache with Dumber Caching and Smarter Hashing"
+   [1]: http://www.cs.cmu.edu/~dga/papers/memc3-nsdi2013.pdf "MemC3: Compact and Concurrent Memcache with Dumber Caching and Smarter Hashing"
 
 Building
 --------
