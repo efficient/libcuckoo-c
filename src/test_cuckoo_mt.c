@@ -32,6 +32,9 @@
 #define million 1000000
 #define VALUE(key) (3*key-15)
 
+/* TODO(awreece) Get this from automake. */
+#define CACHE_LINE_SIZE 64
+
 static cuckoo_hashtable_t* table = NULL;
 static size_t power = 25;
 static size_t total =  30 * million;
@@ -47,6 +50,11 @@ typedef struct {
     size_t failures;
     int id;
 } thread_arg_t;
+
+typedef union {
+  thread_arg_t arg;
+  char padding[CACHE_LINE_SIZE];
+} __attribute__((aligned (CACHE_LINE_SIZE))) padded_thread_arg_t;
 
 static size_t task_next;
 static size_t task_done;
@@ -213,11 +221,23 @@ int main(int argc, char** argv)
     pthread_t* readers = calloc(sizeof(pthread_t), num_readers);
     pthread_t* writers = calloc(sizeof(pthread_t), num_writers);
 
-    thread_arg_t* reader_args = calloc(sizeof(thread_arg_t), num_readers);
-    thread_arg_t* writer_args = calloc(sizeof(thread_arg_t), num_writers);
+    // Allocate cache-line aligned arguments to prevent false sharing.
+    padded_thread_arg_t* reader_args;
+    // I'd like to align to padded_thread_arg_t, but don't know an alignmentof
+    // operator in pure C.
+    posix_memalign((void**) &reader_args,
+                   CACHE_LINE_SIZE,
+                   sizeof(padded_thread_arg_t) * num_readers);
+    padded_thread_arg_t* writer_args;
+    // I'd like to align to padded_thread_arg_t, but don't know an alignmentof
+    // operator in pure C.
+    posix_memalign((void**) &writer_args,
+                   CACHE_LINE_SIZE,
+                   sizeof(padded_thread_arg_t) * num_writers);
+
     // create threads as writers
     for (i = 0; i < num_writers; i ++) {
-        writer_args[i].id = i;
+        writer_args[i].arg.id = i;
         if (pthread_create(&writers[i], NULL, insert_thread, &writer_args[i]) != 0) {
             fprintf(stderr, "Can't create thread for writer%d\n", i);
             exit(-1);
@@ -226,7 +246,7 @@ int main(int argc, char** argv)
 
     // create threads as readers
     for (i = 0; i < num_readers; i ++) {
-        reader_args[i].id = i;
+        reader_args[i].arg.id = i;
         if (pthread_create(&readers[i], NULL, lookup_thread, &reader_args[i]) != 0) {
             fprintf(stderr, "Can't create thread for reader%d\n", i);
             exit(-1);
@@ -249,12 +269,12 @@ int main(int argc, char** argv)
         tdiff = tved - tvsd;
         printf("[tput in MOPS] ");
         for (i = 0; i < num_readers; i ++) {
-            printf("reader%d %4.2f ", i, (reader_args[i].num_read - last_num_read[i])/ tdiff/ million );
-            last_num_read[i] = reader_args[i].num_read;
+            printf("reader%d %4.2f ", i, (reader_args[i].arg.num_read - last_num_read[i])/ tdiff/ million );
+            last_num_read[i] = reader_args[i].arg.num_read;
         }
         for (i = 0; i < num_writers; i ++) {
-            printf("writer%d %4.2f ", i, (writer_args[i].num_written - last_num_written[i])/ tdiff/ million );
-            last_num_written[i] = writer_args[i].num_written;
+            printf("writer%d %4.2f ", i, (writer_args[i].arg.num_written - last_num_written[i])/ tdiff/ million );
+            last_num_written[i] = writer_args[i].arg.num_written;
         }
         printf("\n");
         tvs = tve;
@@ -262,15 +282,15 @@ int main(int argc, char** argv)
 
     for (i = 0; i < num_readers; i ++) {
         pthread_join(readers[i], NULL);
-        printf("[reader%d] %zu lookups, %zu failures\n", i, reader_args[i].ops, reader_args[i].failures);
-        if (reader_args[i].failures > 0)
+        printf("[reader%d] %zu lookups, %zu failures\n", i, reader_args[i].arg.ops, reader_args[i].arg.failures);
+        if (reader_args[i].arg.failures > 0)
             passed = false;
     }
 
     for (i = 0; i < num_writers; i ++) {
         pthread_join(writers[i], NULL);
-        printf("[writer%d] %zu inserts, %zu failures\n", i, writer_args[i].ops, writer_args[i].failures);
-        if (writer_args[i].failures > 0)
+        printf("[writer%d] %zu inserts, %zu failures\n", i, writer_args[i].arg.ops, writer_args[i].arg.failures);
+        if (writer_args[i].arg.failures > 0)
             passed = false;
     }
 
